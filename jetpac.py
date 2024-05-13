@@ -175,13 +175,13 @@ def readbmp(filename):
         for x in range(height):
             for y in range(width):       
                 col = lebytes_to_int(list(bytearray(f.read(3))))
-                sprite1.pixel(x,y,col) 
+                sprite1.pixel(y,height - x,col) 
         return (sprite1)
  
 if __name__=='__main__':
     pwm = PWM(Pin(BL))
     pwm.freq(1000)
-    pwm.duty_u16(32768)#max 65535
+    pwm.duty_u16(32768)
 
     LCD = LCD_1inch3()
     
@@ -212,21 +212,20 @@ if __name__=='__main__':
         time.sleep(1)
     
     # make small sprites by blitting spritesheet over a small frambuf
-    height = 16
-    width = 28
+    height = 23
+    width = 17
     buffer = bytearray(height * width *2)
     jetmansprite = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
-    jetmansprite.blit(spritesheet,-76,0)
+    jetmansprite.blit(spritesheet,0,-24)
     
     width = 16
+    height = 16
     buffer = bytearray(height * width *2)
     aliensprite = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
-    aliensprite.blit(spritesheet,-64,0)
+    aliensprite.blit(spritesheet,0,-50)
     
     x = y = 100
     xdir = ydir = 0
-    speed = 1
-    
     
     ax = ay = 100
     while True:
@@ -244,8 +243,8 @@ if __name__=='__main__':
         
         if (x < -25 ): x = 220
         if (x > 230) : x = -25 
-        if (y > 180) :
-            y = 180
+        if (y > 215) :
+            y = 215
             ydir *= -0.5
         if (y < 0) : ydir = 1
         
