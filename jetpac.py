@@ -187,7 +187,22 @@ def getsprite (spritesheet, width, height, x, y):
         sprite = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
         sprite.blit(spritesheet,-x,-y)
         return (sprite)
-     
+    
+class spriteobj:
+    x = y = 0
+    xdir = 3
+    ydir = 0.5
+    
+def collide (obj,x1,y1):
+    if (abs(x - obj.x) + abs(y - obj.y) < 20) : return True
+    else : return False
+
+def hitplatform (x,y):
+    for p in platforms:
+            px,py,width = p
+            if ( (x > px and (x-px) < width) and (abs(py - y - 8) < 8)) : return True
+    return False
+
 if __name__=='__main__':
     pwm = PWM(Pin(BL))
     pwm.freq(1000)
@@ -217,60 +232,81 @@ if __name__=='__main__':
     gemsprite = getsprite(spritesheet,16,16,112,0)
     rocketsprite = getsprite(spritesheet,16,64,39,64)
     
-    x = y = 50
-    xdir = ydir = 10
-    ax = ay = 100
+    x = y = 150
+    xdir = ydir = 5
     costume = 0
+    frames = 0
     
+    fuel = spriteobj()
+    fuel.x = 110
+    
+    aliens = [spriteobj() for i in range(3)]
+    for alien in aliens :
+        alien.x = random.randrange(200)
+        alien.y = random.randrange(200)
+    
+    platforms = [(32,90,60), (90,150,60), (172,52,60), (-20,238,250)]
     while True:
         LCD.fill(LCD.blue)    
         time.sleep(0.02)
-        
-        #walking
-        if (time.ticks_ms() % 200 and y > 210 and abs(xdir) > 1 ) :
+        frames += 1  
+        #walking animation on ground
+        if (frames % 2 and abs(ydir) < 1 and abs(xdir) > 1 ) :
             costume = 24 - costume
             jetmansprite = getsprite(spritesheet,17,23,0,costume)
         
         #move directions
         xdir += left.value() - right.value()
-        if (keyA.value() == 0): ydir -= 1;
-        
+        if (keyA.value() == 0): ydir -= 1        
         # not too fast
         if (abs(xdir) > 15): xdir *= 0.5
         xdir *= 0.9
         # keep on screen
-        
-        if (x < -25 ): x = 220
-        if (x > 230) : x = -25 
-        if (y > 215) :
-            y = 215
-            ydir *= -0.3
+        if (x < -15 ): x = 230
+        if (x > 230) : x = -15
+        if (y > 220): y = 210
         if (y < 0) : ydir = 1
         
         x += xdir 
         y += ydir 
-        
+        # gravity
         ydir += 0.5
+        fuel.y += fuel.ydir
+        if (fuel.ydir > 0) : fuel.ydir += 0.5
         
+        if (hitplatform(fuel.x,fuel.y)) :
+            fuel.ydir = 0
+        if (hitplatform(x,y + 10) and ydir > 0) :
+            ydir = 0
+        #laser
+        if (keyB.value() == 0) :
+            for laser in range(5,50):
+                if (xdir > 1) : laser *= -1;
+                if (random.random() > 0.5) : LCD.pixel(int(x) - laser,int(y) + 15, LCD.green)
         #aliens
-        ax = ax + 3
-        ay = ay + 0.5
-        if (ax > 220) :
-            ax = -10
-            ay = random.randrange(200)
-         
-        LCD.blit(jetmansprite,int(x),int(y),0)   
-        LCD.blit(aliensprite,int(ax),int(ay),0)
+        for alien in aliens :
+            alien.x += alien.xdir
+            alien.y += alien.ydir
+            splat = False
+            if (alien.x > 220 or hitplatform(alien.x,alien.y)):
+                splat = True
+            # player collides with alien
+            if (collide(alien,x,y)) :
+                xdir = ydir = 10
+                splat = True
+            if (splat) :
+                alien.x = -10
+                alien.y = random.randrange(200)
+                alien.xdir = 2 + random.randrange(3)
+            LCD.blit(aliensprite,int(alien.x),int(alien.y),0)
         
         LCD.blit(gemsprite,185,37,0)
-        LCD.blit(fuelsprite,100,136,0)
+        LCD.blit(fuelsprite,int(fuel.x),int(fuel.y),0)
         LCD.blit(rocketsprite,160,190,0)
+        LCD.blit(jetmansprite,int(x),int(y),0)
         # platforms
-        LCD.line(32,90,90,90,LCD.green)
-        LCD.line(90,150,150,150,LCD.green)
-        LCD.line(172,52,220,52,LCD.green)
-        # ground
-        LCD.line(0,238,240,238,LCD.green)
-        LCD.line(0,239,240,239,LCD.green)
-        
+        for p in platforms:
+            px,py,width = p
+            LCD.line(px, py, px +width ,py ,LCD.green)
+            LCD.line(px, py+1, px +width ,py+1 ,LCD.green)
         LCD.show()
