@@ -2,6 +2,7 @@
 from machine import Pin,SPI,PWM
 import framebuf
 import time,random
+import gc
 
 BL = 13
 DC = 8
@@ -166,18 +167,27 @@ def readbmp(filename):
         width = lebytes_to_int(img_bytes[18:22])
         height = lebytes_to_int(img_bytes[22:26])
         
-        print (width,height)
-        print (start_pos)
         seektostart = f.read(start_pos - 26)
-        
+                             
+        gc.collect()
         buffer = bytearray(height * width *2)
         sprite1 = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
         for x in range(height):
             for y in range(width):       
                 col = lebytes_to_int(list(bytearray(f.read(3))))
-                sprite1.pixel(y,height - x,col) 
+                sprite1.pixel(y,height - x,col)
+        f.close()
         return (sprite1)
- 
+    
+def getsprite (spritesheet, width, height, x, y):     
+        # make small sprites by blitting spritesheet over a small framebuf,
+        # taking advantage of clipping
+        gc.collect()
+        buffer = bytearray(height * width *2)
+        sprite = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
+        sprite.blit(spritesheet,-x,-y)
+        return (sprite)
+     
 if __name__=='__main__':
     pwm = PWM(Pin(BL))
     pwm.freq(1000)
@@ -194,43 +204,32 @@ if __name__=='__main__':
     down = Pin(18,Pin.IN,Pin.PULL_UP)
     left = Pin(16,Pin.IN,Pin.PULL_UP)
     right = Pin(20,Pin.IN,Pin.PULL_UP)
-    ctrl = Pin(3,Pin.IN,Pin.PULL_UP)
-
-  
+ 
     LCD.fill(LCD.blue)
     LCD.text("Loading...",20,100,LCD.white)
     LCD.show()
-    
-    started = time.ticks_ms()
+    # takes 5 seconds..
     spritesheet = readbmp ("jetpac.bmp")
-    print (time.ticks_ms() - started)
+
+    jetmansprite = getsprite(spritesheet,17,23,0,24)
+    aliensprite = getsprite(spritesheet,16,16,0,50)
+    fuelsprite = getsprite(spritesheet,16,16,112,100)
+    gemsprite = getsprite(spritesheet,16,16,112,0)
+    rocketsprite = getsprite(spritesheet,16,64,39,64)
     
-    LCD.blit(spritesheet,0,0)
-    LCD.text("Press A to start",10,180,LCD.white)
-    LCD.show()
-    while (keyA.value() == 1):
-        time.sleep(1)
-    
-    # make small sprites by blitting spritesheet over a small frambuf
-    height = 23
-    width = 17
-    buffer = bytearray(height * width *2)
-    jetmansprite = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
-    jetmansprite.blit(spritesheet,0,-24)
-    
-    width = 16
-    height = 16
-    buffer = bytearray(height * width *2)
-    aliensprite = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
-    aliensprite.blit(spritesheet,0,-50)
-    
-    x = y = 100
-    xdir = ydir = 0
-    
+    x = y = 50
+    xdir = ydir = 10
     ax = ay = 100
+    costume = 0
+    
     while True:
         LCD.fill(LCD.blue)    
         time.sleep(0.02)
+        
+        #walking
+        if (time.ticks_ms() % 200 and y > 210 and abs(xdir) > 1 ) :
+            costume = 24 - costume
+            jetmansprite = getsprite(spritesheet,17,23,0,costume)
         
         #move directions
         xdir += left.value() - right.value()
@@ -238,26 +237,40 @@ if __name__=='__main__':
         
         # not too fast
         if (abs(xdir) > 15): xdir *= 0.5
-        xdir *= 0.99
+        xdir *= 0.9
         # keep on screen
         
         if (x < -25 ): x = 220
         if (x > 230) : x = -25 
         if (y > 215) :
             y = 215
-            ydir *= -0.5
+            ydir *= -0.3
         if (y < 0) : ydir = 1
         
         x += xdir 
         y += ydir 
         
-        ydir += 0.2
-        LCD.blit(jetmansprite,int(x),int(y),0)
+        ydir += 0.5
         
+        #aliens
         ax = ax + 3
         ay = ay + 0.5
         if (ax > 220) :
             ax = -10
             ay = random.randrange(200)
+         
+        LCD.blit(jetmansprite,int(x),int(y),0)   
         LCD.blit(aliensprite,int(ax),int(ay),0)
+        
+        LCD.blit(gemsprite,185,37,0)
+        LCD.blit(fuelsprite,100,136,0)
+        LCD.blit(rocketsprite,160,190,0)
+        # platforms
+        LCD.line(32,90,90,90,LCD.green)
+        LCD.line(90,150,150,150,LCD.green)
+        LCD.line(172,52,220,52,LCD.green)
+        # ground
+        LCD.line(0,238,240,238,LCD.green)
+        LCD.line(0,239,240,239,LCD.green)
+        
         LCD.show()
