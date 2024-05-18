@@ -170,11 +170,13 @@ def readbmp(filename):
         seektostart = f.read(start_pos - 26)
                              
         gc.collect()
-        buffer = bytearray(height * width *2)
+        buffer = bytearray(height * width * 2)
         sprite1 = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
         for x in range(height):
+            colrow= list(bytearray(f.read(3 * width)))
             for y in range(width):       
-                col = lebytes_to_int(list(bytearray(f.read(3))))
+                #col = lebytes_to_int(list(bytearray(f.read(3))))
+                col = lebytes_to_int(colrow[y *3:y *3 +3])
                 sprite1.pixel(y,height - x,col)
         f.close()
         return (sprite1)
@@ -183,7 +185,7 @@ def getsprite (spritesheet, width, height, x, y):
         # make small sprites by blitting spritesheet over a small framebuf,
         # taking advantage of clipping
         gc.collect()
-        buffer = bytearray(height * width *2)
+        buffer = bytearray(height * width * 2)
         sprite = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
         sprite.blit(spritesheet,-x,-y)
         return (sprite)
@@ -192,9 +194,12 @@ class spriteobj:
     x = y = 0
     xdir = 3
     ydir = 0.5
-    
-def collide (obj,x1,y1):
-    if (abs(x - obj.x) + abs(y - obj.y) < 20) : return True
+    time = 0
+    grabbed = 0
+def collide (obj,x1,y1,xdistance):
+    #xdistance = 10
+    ydistance = 10
+    if (abs(x - obj.x) < xdistance  and abs(y - obj.y) < ydistance) : return True
     else : return False
 
 def hitplatform (x,y):
@@ -224,10 +229,13 @@ if __name__=='__main__':
     LCD.text("Loading...",20,100,LCD.white)
     LCD.show()
     # takes 5 seconds..
+    start = time.ticks_ms()
     spritesheet = readbmp ("jetpac.bmp")
-
+    print (time.ticks_ms() - start)
+    
     jetmansprite = getsprite(spritesheet,17,23,0,24)
     aliensprite = getsprite(spritesheet,16,16,0,50)
+    splatsprite = getsprite(spritesheet,25,16,69,0)
     fuelsprite = getsprite(spritesheet,16,16,112,100)
     gemsprite = getsprite(spritesheet,16,16,112,0)
     rocketsprite = getsprite(spritesheet,16,64,39,64)
@@ -237,6 +245,7 @@ if __name__=='__main__':
     costume = 0
     frames = 0
     
+    splat = spriteobj()
     fuel = spriteobj()
     fuel.x = 110
     
@@ -246,6 +255,9 @@ if __name__=='__main__':
         alien.y = random.randrange(200)
     
     platforms = [(32,90,60), (90,150,60), (172,52,60), (-20,238,250)]
+    
+    gc.collect()
+    print(gc.mem_free())
     while True:
         LCD.fill(LCD.blue)    
         time.sleep(0.02)
@@ -272,36 +284,57 @@ if __name__=='__main__':
         # gravity
         ydir += 0.5
         fuel.y += fuel.ydir
-        if (fuel.ydir > 0) : fuel.ydir += 0.5
+        if (fuel.ydir > 0) : fuel.ydir += 0.1
         
         if (hitplatform(fuel.x,fuel.y)) :
             fuel.ydir = 0
         if (hitplatform(x,y + 10) and ydir > 0) :
             ydir = 0
         #laser
-        if (keyB.value() == 0) :
-            for laser in range(5,50):
-                if (xdir > 1) : laser *= -1;
-                if (random.random() > 0.5) : LCD.pixel(int(x) - laser,int(y) + 15, LCD.green)
+        if (keyB.value() == 0) : firing  = 1
+        else : firing = 0
+        
         #aliens
         for alien in aliens :
             alien.x += alien.xdir
             alien.y += alien.ydir
-            splat = False
-            if (alien.x > 220 or hitplatform(alien.x,alien.y)):
-                splat = True
+            dead = 0
+            if (alien.x > 240) : dead = 1
+            if (hitplatform(alien.x,alien.y)) : dead = 1
+            if (firing and collide(alien,x,y,50)) : dead = 1
             # player collides with alien
-            if (collide(alien,x,y)) :
+            if (collide(alien,x,y,10)) :
                 xdir = ydir = 10
-                splat = True
-            if (splat) :
-                alien.x = -10
-                alien.y = random.randrange(200)
-                alien.xdir = 2 + random.randrange(3)
+                dead = 1
+            if (dead) :
+                    splat.x = alien.x
+                    splat.y = alien.y
+                    splat.time = 5
+                    
+                    alien.x = -10
+                    alien.y = random.randrange(200)
+                    alien.xdir = 2 + random.randrange(3)        
             LCD.blit(aliensprite,int(alien.x),int(alien.y),0)
+        #explosions stay on screen for 5 frames    
+        if (splat.time  > 0) :
+            splat.time -= 1
+            LCD.blit(splatsprite,int(splat.x),int(splat.y),0)
+        
+        # fuel grabbing and dropping
+        if (not fuel.grabbed and collide(fuel,x,y-30,10)) : fuel.grabbed = 1
+        if (fuel.grabbed) :
+                fuel.x = x
+                fuel.y = y + 20
+                fuel.ydir = 1
+                dropzone = 180
+                if (abs(fuel.x - dropzone) < 20) : fuel.grabbed = 0
+        if (fuel.y > 220) :
+            fuel.x = 100
+            fuel.y = 0
+            fuel.ydir = 1
+        LCD.blit(fuelsprite,int(fuel.x),int(fuel.y),0)
         
         LCD.blit(gemsprite,185,37,0)
-        LCD.blit(fuelsprite,int(fuel.x),int(fuel.y),0)
         LCD.blit(rocketsprite,160,190,0)
         LCD.blit(jetmansprite,int(x),int(y),0)
         # platforms
@@ -309,4 +342,9 @@ if __name__=='__main__':
             px,py,width = p
             LCD.line(px, py, px +width ,py ,LCD.green)
             LCD.line(px, py+1, px +width ,py+1 ,LCD.green)
+        #laser
+        if firing:
+            for laser in range(5,50):
+                if (xdir > 1) : laser *= -1;
+                if (random.random() > 0.5) : LCD.pixel(int(x) - laser,int(y) + 15, LCD.green)
         LCD.show()
