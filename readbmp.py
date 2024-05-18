@@ -19,13 +19,17 @@ def readbmp(filename):
 
         width = lebytes_to_int(img_bytes[18:22])
         height = lebytes_to_int(img_bytes[22:26])
-
-        seektostart = f.read(start_pos - 26)
         
-        buffer = bytearray(height * width *2)
+        seektostart = f.read(start_pos - 26)
+                             
+        gc.collect()
+        buffer = bytearray(height * width * 2)
         spritesheet = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
         for x in range(height):
+            colrow= list(bytearray(f.read(3 * width)))
             for y in range(width):       
-                col = lebytes_to_int(list(bytearray(f.read(3))))
-                spritesheet.pixel(y,height - x,col) 
+                #col = lebytes_to_int(list(bytearray(f.read(3))))
+                col = lebytes_to_int(colrow[y *3:y *3 +3])
+                spritesheet.pixel(y,height - x,col)
+        f.close()
         return (spritesheet)
