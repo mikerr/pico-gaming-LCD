@@ -150,7 +150,6 @@ class LCD_1inch3(framebuf.FrameBuffer):
         self.cs(0)
         self.spi.write(self.buffer)
         self.cs(1)
-
   
 def readbmp(filename):
         def lebytes_to_int(bytes):
@@ -174,9 +173,16 @@ def readbmp(filename):
         sprite1 = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
         for x in range(height):
             colrow= list(bytearray(f.read(3 * width)))
-            for y in range(width):       
-                #col = lebytes_to_int(list(bytearray(f.read(3))))
-                col = lebytes_to_int(colrow[y *3:y *3 +3])
+            for y in range(width):
+                b,g,r = colrow[y*3:y*3+3]
+                # RGB565
+                rgb = ((r >> 3)  << 11) | ((g >>2) << 5) | (b >> 3 )
+                
+                # swap needed for ILI9341 screen
+                swapL = rgb >> 8
+                swapH = (rgb & 0x00FF) << 8
+                col = swapL | swapH
+                
                 sprite1.pixel(y,height - x,col)
         f.close()
         return (sprite1)
@@ -228,10 +234,8 @@ if __name__=='__main__':
     LCD.fill(LCD.blue)
     LCD.text("Loading...",20,100,LCD.white)
     LCD.show()
-    # takes 5 seconds..
-    start = time.ticks_ms()
+ 
     spritesheet = readbmp ("jetpac.bmp")
-    print (time.ticks_ms() - start)
     
     jetmansprite = getsprite(spritesheet,17,23,0,24)
     aliensprite = getsprite(spritesheet,16,16,0,50)
@@ -257,7 +261,7 @@ if __name__=='__main__':
     platforms = [(32,90,60), (90,150,60), (172,52,60), (-20,238,250)]
     
     gc.collect()
-    print(gc.mem_free())
+    #print(gc.mem_free())
     while True:
         LCD.fill(LCD.blue)    
         time.sleep(0.02)
