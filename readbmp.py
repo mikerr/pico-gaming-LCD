@@ -28,11 +28,7 @@ def readbmp(filename):
         for x in range(height):
             colrow= list(bytearray(f.read(3 * width)))
             for y in range(width):       
-                #col = lebytes_to_int(list(bytearray(f.read(3))))
-                r = colrow[y *3 +2] 
-                g = colrow[y *3 +1]  
-                b = colrow[y *3]
-   
+                b,g,r = colrow[y*3:y*3+3]
                 # RGB565
                 rgb = ((r >> 3)  << 11) | ((g >>2) << 5) | (b >> 3 )
                 
