@@ -29,10 +29,19 @@ def readbmp(filename):
             colrow= list(bytearray(f.read(3 * width)))
             for y in range(width):       
                 #col = lebytes_to_int(list(bytearray(f.read(3))))
-                r = colrow[y *3 +2] * 31/255
-                g = colrow[y *3 +1] * 63 /255
-                b = colrow[y *3] * 31 /255
-                col =  (int(b) << 11) | (int(r) << 6) | int(g)
+                r = colrow[y *3 +2] 
+                g = colrow[y *3 +1]  
+                b = colrow[y *3]
+   
+                # RGB565
+                rgb = ((r >> 3)  << 11) | ((g >>2) << 5) | (b >> 3 )
+                
+                # swap needed for ILI9341 screen
+                swapL = rgb >> 8
+                swapH = (rgb & 0x00FF) << 8
+                col = swapL | swapH
+                
+                fb.pixel(y,height - x,col)
                 spritesheet.pixel(y,height - x,col)
         f.close()
         return (spritesheet)
