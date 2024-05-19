@@ -29,7 +29,10 @@ def readbmp(filename):
             colrow= list(bytearray(f.read(3 * width)))
             for y in range(width):       
                 #col = lebytes_to_int(list(bytearray(f.read(3))))
-                col = lebytes_to_int(colrow[y *3:y *3 +3])
+                r = colrow[y *3 +2] * 31/255
+                g = colrow[y *3 +1] * 63 /255
+                b = colrow[y *3] * 31 /255
+                col =  (int(b) << 11) | (int(r) << 6) | int(g)
                 spritesheet.pixel(y,height - x,col)
         f.close()
         return (spritesheet)
