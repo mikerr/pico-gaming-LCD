@@ -1,4 +1,4 @@
-import framebuf
+import framebuf,gc
 
 # Read a BMP image direct into a framebuffer
 # 24bit uncompressed
