@@ -3,7 +3,7 @@
 
 from machine import Pin,SPI,PWM
 import framebuf,gc
-import time
+import os,time
 
 BL = 13
 DC = 8
@@ -198,11 +198,9 @@ if __name__=='__main__':
     LCD = LCD_1inch3()
      
     LCD.fill(0)
-    #LCD.show()
     while True:
-        readbmp(LCD,"lena.bmp")
-        LCD.show()
-        readbmp(LCD,"mandrill.bmp")
-        LCD.show()
-        readbmp(LCD,"peppers.bmp")
-        LCD.show()
+        path = "img/"
+        files = os.listdir(path)
+        for file in files:
+            readbmp(LCD,path + file)
+            LCD.show()
