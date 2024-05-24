@@ -2,7 +2,7 @@
 # 24bit BMP, uncompressed
 
 from lcd13 import *
-import os,time
+import os
 
 def readbmp(fb,filename):
         def lebytes_to_int(bytes):
@@ -43,10 +43,16 @@ def readbmp(fb,filename):
         return 
     
 if __name__=='__main__':
+
     LCD = LCD_1inch3()
      
     LCD.fill(0)
-    while True:
+    #LCD.show()
+    if 'pic' in globals() :
+        readbmp(LCD,pic)
+        LCD.show()
+    else :
+      while True:
         path = "img/"
         files = os.listdir(path)
         for file in files:
