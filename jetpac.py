@@ -1,8 +1,9 @@
 # jetpac
+
 from lcd13 import *
 from readbmp import *
 import time,random
-  
+
 def getsprite (spritesheet, width, height, x, y):     
         # make small sprites by blitting spritesheet over a small framebuf,
         # taking advantage of clipping
@@ -76,7 +77,7 @@ if __name__=='__main__':
     gc.collect()
     #print(gc.mem_free())
     while True:
-        LCD.fill(LCD.blue)    
+        LCD.fill(0)    
         time.sleep(0.02)
         frames += 1  
         #walking animation on ground
@@ -105,8 +106,10 @@ if __name__=='__main__':
         
         if (hitplatform(fuel.x,fuel.y)) :
             fuel.ydir = 0
-        if (hitplatform(x,y + 10) and ydir > 0) :
-            ydir = 0
+        if (hitplatform(x,y + 10)):
+                if (ydir > 0) : ydir = 0
+                else : ydir = 5 #bounce underneath
+        
         #laser
         if (keyB.value() == 0) : firing  = 1
         else : firing = 0
@@ -130,7 +133,7 @@ if __name__=='__main__':
                     
                     alien.x = -10
                     alien.y = random.randrange(200)
-                    alien.xdir = 2 + random.randrange(3)        
+                    alien.xdir = 2 + random.randrange(3)
             LCD.blit(aliensprite,int(alien.x),int(alien.y),0)
         #explosions stay on screen for 5 frames    
         if (splat.time  > 0) :
