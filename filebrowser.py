@@ -36,7 +36,11 @@ def view_text(LCD,pathfile):
         LCD.text("binary file",10,100,LCD.white)
         LCD.show()
         time.sleep(1)
-        
+def wait_for_key(key) :
+    while (key.value() != 0) : time.sleep (0.1)
+    
+def run_script(pathfile):
+    exec (open(pathfile).read())
 path = "/"
 files = os.listdir(path)        
 cursor = 0
@@ -63,8 +67,20 @@ while True:
             files = os.listdir(path)
         else :
             # open file
-            view_text(LCD,path + selected)
+            pathfile = path + selected
+            if (pathfile.endswith(".txt")):
+                view_text(LCD,path + selected)
             
+            if (pathfile.endswith(".bmp")):
+                LCD = ""
+                pic = pathfile
+                run_script("bmp2screen.py")
+                wait_for_key(keyB)
+            
+            if (pathfile.endswith(".py")) :
+                LCD =""
+                run_script(path + selected)
+                
     if (keyB.value() == 0) :
         # go back up a level
         path = "/"
