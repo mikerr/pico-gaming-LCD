@@ -11,6 +11,18 @@ def getsprite (spritesheet, width, height, x, y):
         sprite = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
         sprite.blit(spritesheet,-x,-y)
         return (sprite)
+
+def mirrorsprite (sprite,width,height) :
+    buffer = bytearray(height * width * 2)
+    mirrored = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
+    
+    buffer = bytearray(height * 2)
+    vertstripe = framebuf.FrameBuffer(buffer, 1 , height, framebuf.RGB565)
+    
+    for x in range (width) :
+        vertstripe.blit(sprite,-x,0)
+        mirrored.blit(vertstripe,width-x,0)
+    return (mirrored)
     
 class spriteobj:
     x = y = 0
@@ -52,6 +64,9 @@ if __name__=='__main__':
     print (time.ticks_ms() - start)
     
     jetmansprite = getsprite(spritesheet,17,23,0,24)
+    jetmanleft = jetmansprite
+    jetmanright = mirrorsprite(jetmanleft,17,23)
+    
     aliensprite = getsprite(spritesheet,16,16,0,50)
     splatsprite = getsprite(spritesheet,25,16,69,0)
     fuelsprite = getsprite(spritesheet,16,16,112,100)
@@ -67,7 +82,7 @@ if __name__=='__main__':
     fuel = spriteobj()
     fuel.x = 110
     
-    aliens = [spriteobj() for i in range(3)]
+    aliens = [spriteobj() for i in range(5)]
     for alien in aliens :
         alien.x = random.randrange(200)
         alien.y = random.randrange(200)
@@ -81,15 +96,20 @@ if __name__=='__main__':
         time.sleep(0.02)
         frames += 1  
         #walking animation on ground
-        if (frames % 2 and abs(ydir) < 1 and abs(xdir) > 1 ) :
+        if (frames % 2 and abs(ydir) < 0.1 and abs(xdir) > 1 ) :
             costume = 24 - costume
             jetmansprite = getsprite(spritesheet,17,23,0,costume)
+            jetmanleft = jetmansprite
+            jetmanright = mirrorsprite(jetmanleft,17,23)
+            
+        if (xdir > 0) : jetmansprite = jetmanright
+        else : jetmansprite = jetmanleft
         
         #move directions
         xdir += left.value() - right.value()
         if (keyA.value() == 0): ydir -= 1        
         # not too fast
-        if (abs(xdir) > 15): xdir *= 0.5
+        if (abs(xdir) > 10): xdir *= 0.5
         xdir *= 0.9
         # keep on screen
         if (x < -15 ): x = 230
